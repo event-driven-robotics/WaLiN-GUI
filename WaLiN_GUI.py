@@ -7,8 +7,8 @@ It also provides auditory feedback on the encoding result.
 You can find a detailed description of the GUI here: [TODO inlcude link to publication!]
 
 Simon F. Muller-Cleve
-Fernando
-Vittorio
+Fernando M. Quintana
+Vittorio Fra
 """
 
 
