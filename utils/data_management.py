@@ -95,6 +95,8 @@ def load_data(
     # Extract data
     data = np.array([x for x in data_dict[data_key].to_numpy()])
     labels = np.array([x for x in data_dict[label_key].to_numpy()])
+    # TODO if timestamps not given, assume a fixed sampling rate (1khz)
+    # TODO add timestamp as list to allow differnet len in data
     timestamps = np.array([x for x in data_dict["timestamp"].to_numpy()])
 
     # if labels are strings, convert to integers
