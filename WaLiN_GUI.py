@@ -84,7 +84,7 @@ class EncodingCalc(QObject):
                 dt=self.main_gui.dt / self.main_gui.dt_slider.value(),
                 train=False,
             )
-        
+
         elif self.main_gui.neuron_model_name == "Recurrent leaky integrate-and-fire":
             self.neurons = RLIF_neuron(
                 len(self.main_gui.channels),
@@ -167,7 +167,7 @@ class WaLiN_GUI_Window(QMainWindow):
         self.upsample_fac = 1
         self.scale = 1
 
-        self.dt = 1/100  # 100Hz
+        self.dt = 1E-3  # 100Hz
         self.data_dict = None
         self.active_class = -1  # Not initialized
 
@@ -209,7 +209,7 @@ class WaLiN_GUI_Window(QMainWindow):
         self.encoding_calc = EncodingCalc(self)
         self.thread = QThread(parent=self)
 
-        # When simulation finish plot the result
+        # When simulation finished, plot the result
         self.encoding_calc.signalData.connect(self._updateCanvas)
         self.encoding_calc.signalData.connect(self._updateSpikesToAudio)
         self.encoding_calc.moveToThread(self.thread)
@@ -310,43 +310,46 @@ class WaLiN_GUI_Window(QMainWindow):
         if self.dataFilename == None:
             # TODO create textbox
             print('Show only text.')
-        elif 'data_braille_letters_all' in self.dataFilename:
-            position_list = [[3, 1], [3, 2], [3, 3], [2, 4, 2, 1], [2, 0, 2, 1], [
-                2, 3], [2, 2], [2, 1], [1, 1], [1, 2], [1, 3], [0, 2]]
-            # TODO should the buttons have the color of the traces?
-            for i in range(len(self.channels)):
-                checkbox = QPushButton(str(i))
-                checkbox.setCheckable(True)
-                checkbox.setChecked(True)
-                checkbox.setStyleSheet(
-                    "background-color : lightgreen;"
-                    "border-top-left-radius : 25px;"
-                    "border-top-right-radius : 25px;"
-                    "border-bottom-left-radius : 25px;"
-                    "border-bottom-right-radius : 25px"
-                )
-                checkbox.clicked.connect(
-                    lambda value, id=i: self._updateChannelCheckbox(value, id))
-                self.channel_box.append(checkbox)
-                # set individual size for the most outer buttons
-                if i == 3 or i == 4:
-                    checkbox.setFixedSize(50, 120)
-                    self.channel_grid.addWidget(
-                        checkbox,
-                        position_list[i][0],
-                        position_list[i][1],
-                        position_list[i][2],
-                        position_list[i][3],
-                        alignment=Qt.AlignmentFlag.AlignCenter,
-                    )
-                else:
-                    checkbox.setFixedSize(50, 60)
-                    self.channel_grid.addWidget(
-                        checkbox,
-                        position_list[i][0],
-                        position_list[i][1],
-                        alignment=Qt.AlignmentFlag.AlignCenter,
-                    )
+
+        # TODO here we can include a custom layout for the braille data, but have to ensure we can also show splitted data
+        # elif 'example_braille_data' in self.dataFilename:
+        #     self.dt = 1E-2
+        #     position_list = [[3, 1], [3, 2], [3, 3], [2, 4, 2, 1], [2, 0, 2, 1], [
+        #         2, 3], [2, 2], [2, 1], [1, 1], [1, 2], [1, 3], [0, 2]]
+        #     # TODO should the buttons have the color of the traces?
+        #     for i in range(len(self.channels)):
+        #         checkbox = QPushButton(str(i))
+        #         checkbox.setCheckable(True)
+        #         checkbox.setChecked(True)
+        #         checkbox.setStyleSheet(
+        #             "background-color : lightgreen;"
+        #             "border-top-left-radius : 25px;"
+        #             "border-top-right-radius : 25px;"
+        #             "border-bottom-left-radius : 25px;"
+        #             "border-bottom-right-radius : 25px"
+        #         )
+        #         checkbox.clicked.connect(
+        #             lambda value, id=i: self._updateChannelCheckbox(value, id))
+        #         self.channel_box.append(checkbox)
+        #         # set individual size for the most outer buttons
+        #         if i == 3 or i == 4:
+        #             checkbox.setFixedSize(50, 120)
+        #             self.channel_grid.addWidget(
+        #                 checkbox,
+        #                 position_list[i][0],
+        #                 position_list[i][1],
+        #                 position_list[i][2],
+        #                 position_list[i][3],
+        #                 alignment=Qt.AlignmentFlag.AlignCenter,
+        #             )
+        #         else:
+        #             checkbox.setFixedSize(50, 60)
+        #             self.channel_grid.addWidget(
+        #                 checkbox,
+        #                 position_list[i][0],
+        #                 position_list[i][1],
+        #                 alignment=Qt.AlignmentFlag.AlignCenter,
+        #             )
         else:
             position_list = []
             # creating the default layout as a grid (pref. height over width)
@@ -579,7 +582,7 @@ class WaLiN_GUI_Window(QMainWindow):
         figures = self.figures
         dt = self.dt
 
-        # TODO select a better color scheme?
+        # some color schemes can be found here
         # (https://matplotlib.org/stable/tutorials/colors/colormaps.html)
 
         colors = cm.hsv(
@@ -660,8 +663,8 @@ class WaLiN_GUI_Window(QMainWindow):
                 neuron_idx = neuron_idx[i]
                 # remove color argument to get monochrom
                 ax.scatter(x=t, y=neuron_idx, c=colors[::2][neuron_idx], s=5)
-                ax.set_ylim(0, output.shape[-1])
-                ax.set_xlim(0, output.shape[0] / 100 / upsample_fac)
+                ax.set_ylim(-1, output.shape[-1])
+                ax.set_xlim(0, output.shape[0] / (1/self.dt) / upsample_fac)
 
         for var in variables:
             var["ax"].figure.canvas.draw()
@@ -762,7 +765,6 @@ class WaLiN_GUI_Window(QMainWindow):
 
     def openData(self):
         """Load data and set up the data management interface."""
-
         self.dataFilename = QFileDialog.getOpenFileName(
             self, "Open file", "./", "Pickle file (*.pkl)")[0]
         self.data_dict = pd.read_pickle(self.dataFilename)
@@ -799,7 +801,7 @@ class WaLiN_GUI_Window(QMainWindow):
                 logging.warning('No classes found. (Remove box?)')
 
         # only create wheel if multiple repetitions are given
-        if 'repetition' in list(self.data_dict.keys()):
+        if 'repetition' in list(self.data_dict.keys()) and len(np.unique(self.data_dict["repetition"])) > 1:
             logging.info('Setting up dial to select the repetition.')
             # Modify the repetition selection
             self.selectedRepetition = int(
@@ -810,16 +812,22 @@ class WaLiN_GUI_Window(QMainWindow):
         else:
             # remove dial
             logging.warning('Only single trial per class. (Removing dial?)')
+            # Remove the dial widget from the layout
+            self.dialRepetition.setParent(None)
+            self.dialRepetition.deleteLater()
 
     def _loadData(self):
         """Load the data from the file."""
         self.data_split, self.labels, self.timestamps, self.le, self.data = load_data(
             self.dataFilename,
             upsample_fac=self.upsample_fac,
+            normalize_data=False,  # TODO make this a checkbox
             norm_val=self.scale,
-            filtering=self.filterSignal,
+            filter_data=self.filterSignal,
             startTrialAtNull=self.startTrialAtNull,
         )
+        if 'example_braille_data' in self.dataFilename:
+            self.dt = 1E-2
         self.channels = np.ones(self.data.shape[-1], dtype=bool)
         self.data_default = self.data.numpy()
         self.timestamps_default = self.timestamps.copy()

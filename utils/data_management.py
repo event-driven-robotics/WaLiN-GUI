@@ -23,7 +23,7 @@ def create_directory(directory_path):
         return directory_path
 
 
-def preprocess_data(data, timestamps, upsample_fac, norm_val, filtering, startTrialAtNull):
+def preprocess_data(data, timestamps, upsample_fac, normalize_data, norm_val, filter_data, startTrialAtNull):
     """
     Filter, normalize, offset and resample the data.
     Uses Multidimensional image processing (scipy.ndimage) for filtering.
@@ -49,11 +49,14 @@ def preprocess_data(data, timestamps, upsample_fac, norm_val, filtering, startTr
         first_val = data[:, 0, :]
         data = data - first_val[:, None, :]
 
-    # TODO inlcude normalization per channel
+    # TODO inlcude normalization of data
+    # TODO per channel or per trial?
+    # TODO include tick box to enable/disable normalization
     # normalize data
-    data = (data/np.max(data))*norm_val
+    if normalize_data:
+        data = (data/np.max(data))*norm_val
 
-    if filtering:
+    if filter_data:
         data = ndimage.uniform_filter(
             data, size=filter_size, mode="nearest"
         )
@@ -77,28 +80,29 @@ def split_data(data):
 def load_data(
     file_name="./data/data_braille_letters_all.pkl",
     upsample_fac=1.0,
+    normalize_data=False,
     norm_val=1,
-    filtering=False,
-    startTrialAtNull=True
+    filter_data=False,
+    startTrialAtNull=False
 ):
     """
     Load sample-based data and apply preprocessing.
     """
     data_dict = pd.read_pickle(file_name)
-    if "data_braille_letters_all" in file_name:
-        label_key = "letter"
-        data_key = "taxel_data"
-    else:
-        label_key = "class"
-        data_key = "data"
+    label_key = "class"
+    data_key = "data"
 
     # Extract data
+    # data.shape: (n_trials, n_timesteps, n_channels) with n_trial = n_classes * n_repetition
     data = np.array([x for x in data_dict[data_key].to_numpy()])
     labels = np.array([x for x in data_dict[label_key].to_numpy()])
-    # TODO if timestamps not given, assume a fixed sampling rate (1khz)
-    # TODO add timestamp as list to allow differnet len in data
+    # TODO add timestamp as list to allow differnet data len
     timestamps = np.array([x for x in data_dict["timestamp"].to_numpy()])
 
+    if timestamps.shape[-1] != data.shape[1]:
+        # create timestamps for each trial
+        timestamps = np.arange(
+            0, data.shape[1]*1E-3, 1E-3).repeat(data.shape[0]).reshape(data.shape[0], data.shape[1])
     # if labels are strings, convert to integers
     if isinstance(labels[0], str):
         le = LabelEncoder()
@@ -107,7 +111,7 @@ def load_data(
 
     # preprocess data
     timestamps_resampled, data_resampled = preprocess_data(
-        data=data, timestamps=timestamps, upsample_fac=upsample_fac, norm_val=norm_val, filtering=filtering, startTrialAtNull=startTrialAtNull)
+        data=data, timestamps=timestamps, upsample_fac=upsample_fac, normalize_data=normalize_data, norm_val=norm_val, filter_data=filter_data, startTrialAtNull=startTrialAtNull)
 
     # split data
     if np.min(data_resampled) < 0:

@@ -75,21 +75,21 @@ class MN_neuron(nn.Module):
         one2N_matrix = torch.ones(1, nb_inputs)
         # define some constants
         self.C = 1
-        self.EL = -0.07
-        self.Vr = -0.07
-        self.Tr = -0.06
-        self.Tinf = -0.05
+        self.EL = -0.07  # V
+        self.Vr = -0.07  # V
+        self.Tr = -0.06  # V
+        self.Tinf = -0.05  # V
 
         # define parameters
         self.a = a
         self.A1 = A1
         self.A2 = A2
-        self.b = b  # units of 1/s
-        self.G = G * self.C  # units of 1/s
-        self.k1 = k1  # units of 1/s
-        self.k2 = k2  # units of 1/s
-        self.R1 = R1
-        self.R2 = R2
+        self.b = b  # 1/s
+        self.G = G * self.C  # 1/s
+        self.k1 = k1  # 1/s
+        self.k2 = k2  # 1/s
+        self.R1 = R1  # not Ohm?
+        self.R2 = R2  # not Ohm?
         self.dt = dt  # get dt from sample rate!
 
         # update parameters from GUI
