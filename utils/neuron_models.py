@@ -64,13 +64,12 @@ class MN_neuron(nn.Module):
         k2=20,
         R1=0,
         R2=1,
-        train=False,
     ):  # default combination: M2O of the original paper
         super(MN_neuron, self).__init__()
 
         # One-to-one synapse
         self.linear = nn.Parameter(torch.ones(
-            1, nb_inputs), requires_grad=train)
+            1, nb_inputs))
         self.N = nb_inputs
         one2N_matrix = torch.ones(1, nb_inputs)
         # define some constants
@@ -101,11 +100,11 @@ class MN_neuron(nn.Module):
             exec(eval_string)
 
         # set up missing parameters
-        self.a = nn.Parameter(one2N_matrix * self.a, requires_grad=train)
+        self.a = nn.Parameter(one2N_matrix * self.a)
         self.A1 = nn.Parameter(one2N_matrix * self.A1 *
-                               self.C, requires_grad=train)
+                               self.C)
         self.A2 = nn.Parameter(one2N_matrix * self.A2 *
-                               self.C, requires_grad=train)
+                               self.C)
 
         self.state = None
 
@@ -135,8 +134,9 @@ class MN_neuron(nn.Module):
 
         i1 = (1 - spk) * i1 + (spk) * (self.R1 * i1 + self.A1)
         i2 = (1 - spk) * i2 + (spk) * (self.R2 * i2 + self.A2)
-        Thr = (1 - spk) * Thr + (spk) * torch.max(Thr, torch.tensor(self.Tr))
-        V = (1 - spk) * V + (spk) * self.Vr
+        Thr = ((1 - spk) * Thr) + \
+            ((spk) * torch.max(Thr, torch.tensor(self.Tr)))
+        V = ((1 - spk) * V) + ((spk) * self.Vr)
 
         self.state = self.NeuronState(V=V, i1=i1, i2=i2, Thr=Thr, spk=spk)
 
@@ -159,13 +159,12 @@ class IZ_neuron(nn.Module):
         b=0.2,
         c=-0.065,
         d=8,
-        train=False
     ):
         super(IZ_neuron, self).__init__()
 
         # One-to-one synapse
         self.linear = nn.Parameter(torch.ones(
-            1, nb_inputs), requires_grad=train)
+            1, nb_inputs))
         self.N = nb_inputs
         # define some constants
         self.spike_value = 35  # spike threshold
@@ -175,7 +174,7 @@ class IZ_neuron(nn.Module):
         self.b = b
         self.c = c  # reset potential
         self.d = d
-        self.dt = dt  # get dt from sample rate!
+        self.dt = dt*1E3  # convert from sec to ms
 
         # update parameters from GUI
         for param_name in list(parameters_combination.keys()):
@@ -198,10 +197,10 @@ class IZ_neuron(nn.Module):
         u = self.state.u
 
         dV = ((0.04 * V + 5) * V) + 140 - u + x
-        V = V + (dV + u) * self.dt
+        V = V + ((dV + u) * self.dt)
 
         du = self.a * (self.b * V - u)
-        u = u + self.dt * du
+        u = u + (self.dt * du)
 
         # create spike when threshold reached
         spk = activation(V - self.spike_value)
@@ -226,11 +225,10 @@ class LIF_neuron(nn.Module):
             self,
             nb_inputs,
             parameters_combination,
-            dt=1 / 1000,
+            dt=1/1000,
             beta=1.0,
-            thr=0.1,
+            thr=1.0,
             R=1.0,
-            train=False,
     ):
         super(LIF_neuron, self).__init__()
 
@@ -262,7 +260,7 @@ class LIF_neuron(nn.Module):
         spk = self.state.spk
 
         V = (self.beta * V + (1.0-self.beta) * x * self.R) * (1.0 - spk)
-        spk = activation(V-1.0)
+        spk = activation(V-self.threshold)
 
         self.state = self.NeuronState(V=V, spk=spk)
 
@@ -271,6 +269,7 @@ class LIF_neuron(nn.Module):
     def reset(self):
         self.state = None
 
+
 class RLIF_neuron(nn.Module):
     NeuronState = namedtuple("NeuronState", ["V", "syn", "spk"])
 
@@ -278,12 +277,11 @@ class RLIF_neuron(nn.Module):
             self,
             nb_inputs,
             parameters_combination,
-            dt=1 / 1000,
+            dt=1/1000,
             alpha=1.0,
             beta=1.0,
-            thr=0.1,
+            thr=1.0,
             R=1.0,
-            train=False,
     ):
         super(RLIF_neuron, self).__init__()
 
@@ -311,7 +309,7 @@ class RLIF_neuron(nn.Module):
                 V=torch.zeros(x.shape[0], self.nb_inputs,
                               device=x.device),
                 syn=torch.zeros(x.shape[0], self.nb_inputs,
-                              device=x.device),
+                                device=x.device),
                 spk=torch.zeros(x.shape[0], self.nb_inputs, device=x.device),
             )
         V = self.state.V
@@ -319,8 +317,9 @@ class RLIF_neuron(nn.Module):
         syn = self.state.syn
 
         syn = self.alpha*syn + spk
-        V = (self.beta * V + (1.0-self.beta) * x * self.R + (1.0-self.beta)*syn) * (1.0 - spk)
-        spk = activation(V-1.0)
+        V = (self.beta * V + (1.0-self.beta) * x *
+             self.R + (1.0-self.beta)*syn) * (1.0 - spk)
+        spk = activation(V-self.threshold)
 
         self.state = self.NeuronState(V=V, syn=syn, spk=spk)
 

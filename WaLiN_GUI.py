@@ -66,7 +66,6 @@ class EncodingCalc(QObject):
                 len(self.main_gui.channels),
                 params,
                 dt=self.main_gui.dt / self.main_gui.dt_slider.value(),
-                train=False,
             )
 
         elif self.main_gui.neuron_model_name == "Izhikevich":
@@ -74,7 +73,6 @@ class EncodingCalc(QObject):
                 len(self.main_gui.channels),
                 params,
                 dt=self.main_gui.dt / self.main_gui.dt_slider.value(),
-                train=False,
             )
 
         elif self.main_gui.neuron_model_name == "Leaky integrate-and-fire":
@@ -82,7 +80,6 @@ class EncodingCalc(QObject):
                 len(self.main_gui.channels),
                 params,
                 dt=self.main_gui.dt / self.main_gui.dt_slider.value(),
-                train=False,
             )
 
         elif self.main_gui.neuron_model_name == "Recurrent leaky integrate-and-fire":
@@ -90,7 +87,6 @@ class EncodingCalc(QObject):
                 len(self.main_gui.channels),
                 params,
                 dt=self.main_gui.dt / self.main_gui.dt_slider.value(),
-                train=False,
             )
 
         else:
