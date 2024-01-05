@@ -172,6 +172,7 @@ class WaLiN_GUI_Window(QMainWindow):
         self.active_class = -1  # Not initialized
 
         self.enable_data_splitting = False
+        self.normalizeData = False
         self.filterSignal = False
         self.startTrialAtNull = False
         self.neuron_model_name = "Mihalas-Niebur"
@@ -495,35 +496,48 @@ class WaLiN_GUI_Window(QMainWindow):
 
     def createPreprocessingSelection(self):
         """
-        Creates the checkboxes for preprocessing the data.
+        Creates the preprocessing section.
         """
-        # create checkboxes for: filtering, startTrialAtNull, split_data
+        # init layout
         self.preprocessingLayout = QGridLayout()
         title = QLabel("Preprocessing")
         self.preprocessingLayout.addWidget(title, 0, 0)
+
+        # TODO create a 2x2 grid for checkboxes
+        # checkboxes for: normalize, filter, startTrialAtNull, split_data
+        self.normalizeDataCheckbox = QCheckBox("Normalize data")
+        self.normalizeDataCheckbox.setChecked(self.normalizeData)
+        self.normalizeDataCheckbox.stateChanged.connect(
+            self._updateNormalizeData)
+        self.preprocessingLayout.addWidget(
+            self.normalizeDataCheckbox, 1, 0, Qt.AlignmentFlag.AlignLeft)
+
         self.filterSignalCheckbox = QCheckBox("Filter signal")
         self.filterSignalCheckbox.setChecked(self.filterSignal)
         self.filterSignalCheckbox.stateChanged.connect(
             self._updateFilterSignal)
         self.preprocessingLayout.addWidget(
-            self.filterSignalCheckbox, 1, 0, Qt.AlignmentFlag.AlignLeft)
+            self.filterSignalCheckbox, 1, 1, Qt.AlignmentFlag.AlignLeft)
 
         self.startTrialAtNullCheckbox = QCheckBox("Start trial at null")
         self.startTrialAtNullCheckbox.setChecked(self.startTrialAtNull)
         self.startTrialAtNullCheckbox.stateChanged.connect(
             self._updateStartTrialAtNull)
         self.preprocessingLayout.addWidget(
-            self.startTrialAtNullCheckbox, 1, 1, Qt.AlignmentFlag.AlignCenter)
+            self.startTrialAtNullCheckbox, 2, 0, Qt.AlignmentFlag.AlignCenter)
 
         self.splitDataCheckbox = QCheckBox("Split data")
         self.splitDataCheckbox.setChecked(self.enable_data_splitting)
         self.splitDataCheckbox.stateChanged.connect(
             self._updateSplitData)
         self.preprocessingLayout.addWidget(
-            self.splitDataCheckbox, 1, 2, Qt.AlignmentFlag.AlignLeft)
+            self.splitDataCheckbox, 2, 1, Qt.AlignmentFlag.AlignLeft)
 
-        # slider to set the upsampling factor
+        # slider to set the upsampling factor and scale
         # TODO inlcude downsampling (1/4, 1/2)
+        dt_label_text = QLabel("upsample", self)
+        dt_label_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.preprocessingLayout.addWidget(dt_label_text, 3, 0)
         self.dt_slider = QSlider(Qt.Orientation.Horizontal, self)
         self.dt_slider.setMinimum(1)
         self.dt_slider.setMaximum(10)
@@ -532,18 +546,15 @@ class WaLiN_GUI_Window(QMainWindow):
         self.dt_slider.setTickInterval(1)
         self.dt_slider.setSingleStep(1)
         self.dt_slider.sliderReleased.connect(self._updateDt)
-        self.preprocessingLayout.addWidget(self.dt_slider, 2, 1)
-        # add label to set the upsampling slider
-        dt_label_text = QLabel("upsample", self)
-        dt_label_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.preprocessingLayout.addWidget(dt_label_text, 2, 0)
-        # set start value of upsampling slider
-        self.dt_label = QLabel(str(1), self)
+        self.preprocessingLayout.addWidget(self.dt_slider, 3, 1)
+        self.dt_label = QLabel(str(1), self)  # define start value
         self.dt_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.dt_label.setMinimumWidth(80)
-        self.preprocessingLayout.addWidget(self.dt_label, 2, 2)
+        self.preprocessingLayout.addWidget(self.dt_label, 3, 2)
 
-        # slider to set the max value after normalization
+        scale_label_text = QLabel("scale", self)
+        scale_label_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.preprocessingLayout.addWidget(scale_label_text, 4, 0)
         self.scale_slider = QSlider(Qt.Orientation.Horizontal, self)
         self.scale_slider.setMinimum(1)
         self.scale_slider.setMaximum(10)
@@ -552,16 +563,11 @@ class WaLiN_GUI_Window(QMainWindow):
         self.scale_slider.setTickInterval(1)
         self.scale_slider.setSingleStep(1)
         self.scale_slider.sliderReleased.connect(self._updateScale)
-        self.preprocessingLayout.addWidget(self.scale_slider, 3, 1)
-        # add label to set the max value slider
-        scale_label_text = QLabel("scale", self)  # write parameter name
-        scale_label_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.preprocessingLayout.addWidget(scale_label_text, 3, 0)
-        # set start value of max value slider
-        self.scale_label = QLabel(str(1), self)  # set start value of label
+        self.preprocessingLayout.addWidget(self.scale_slider, 4, 1)
+        self.scale_label = QLabel(str(1), self)  # define start value
         self.scale_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.scale_label.setMinimumWidth(80)
-        self.preprocessingLayout.addWidget(self.scale_label, 3, 2)
+        self.preprocessingLayout.addWidget(self.scale_label, 4, 2)
 
         # add to overall layout
         self.parametersLayout.addLayout(
@@ -821,8 +827,8 @@ class WaLiN_GUI_Window(QMainWindow):
         self.data_split, self.labels, self.timestamps, self.le, self.data = load_data(
             self.dataFilename,
             upsample_fac=self.upsample_fac,
-            normalize_data=False,  # TODO make this a checkbox
-            norm_val=self.scale,
+            normalize_data=self.normalizeData,  # TODO make this a checkbox
+            scale_val=self.scale,
             filter_data=self.filterSignal,
             startTrialAtNull=self.startTrialAtNull,
         )
@@ -851,14 +857,18 @@ class WaLiN_GUI_Window(QMainWindow):
         self.data_steps = data_steps * self.upsample_fac
         # here we change the number of computed time steps according to the upsample factor
         self._updateData()
-
         self.simulate_event.emit()
 
     def _updateFilterSignal(self):
         """Update data according to filter signal checkbox."""
         self.filterSignal = self.sender().isChecked()
         self._updateData()
+        self.simulate_event.emit()
 
+    def _updateNormalizeData(self):
+        """Update data according to normalize data checkbox."""
+        self.normalizeData = self.sender().isChecked()
+        self._updateData()
         self.simulate_event.emit()
 
     def _updateParamSlider(self, value, id):
@@ -875,21 +885,17 @@ class WaLiN_GUI_Window(QMainWindow):
         self.simulate_event.emit()
 
     def _updateScale(self):
-        """Update the scale of the data."""
+        """Update the data scaling."""
         value = self.sender().value()
         self.scale_label.setText(str(value))
         self.scale = value
-        # here we scale the analog input data according to the upscale factor
-        factor = self.scale/torch.max(self.data)
-        self.data = self.data*factor
-        if self.enable_data_splitting:
-            self.data_split = self.data_split*factor
+        self._updateData()
         self.simulate_event.emit()
 
     def _updateSplitData(self):
         """
         Used to enforce or disable splitting of data into positive and negative values.
-        If no negative values given, the splitting will not be applied.
+        If no negative values given, channel will contain zeros only.
         """
         self.enable_data_splitting = self.sender().isChecked()
         self._updateData()
@@ -897,7 +903,6 @@ class WaLiN_GUI_Window(QMainWindow):
             self.channels = np.ones(self.data_split.shape[-1], dtype=bool)
         else:
             self.channels = np.ones(self.data.shape[-1], dtype=bool)
-
         self._resetLayout(self.parametersLayout, self.channel_grid)
         self.createChannelSelection()
         self.simulate_event.emit()
@@ -906,8 +911,10 @@ class WaLiN_GUI_Window(QMainWindow):
         timestamps, data = preprocess_data(
             data=self.data_default,
             timestamps=self.timestamps_default,
-            upsample_fac=self.upsample_fac, norm_val=self.scale,
-            filtering=self.filterSignal,
+            upsample_fac=self.upsample_fac,
+            normalize_data=self.normalizeData,
+            scale_val=self.scale,
+            filter_data=self.filterSignal,
             startTrialAtNull=self.startTrialAtNull
         )
         self.data = torch.tensor(data)

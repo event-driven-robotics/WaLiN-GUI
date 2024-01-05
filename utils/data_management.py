@@ -23,7 +23,7 @@ def create_directory(directory_path):
         return directory_path
 
 
-def preprocess_data(data, timestamps, upsample_fac, normalize_data, norm_val, filter_data, startTrialAtNull):
+def preprocess_data(data, timestamps, upsample_fac, normalize_data, scale_val, filter_data, startTrialAtNull):
     """
     Filter, normalize, offset and resample the data.
     Uses Multidimensional image processing (scipy.ndimage) for filtering.
@@ -54,7 +54,9 @@ def preprocess_data(data, timestamps, upsample_fac, normalize_data, norm_val, fi
     # TODO include tick box to enable/disable normalization
     # normalize data
     if normalize_data:
-        data = (data/np.max(data))*norm_val
+        data = (data/np.max(data))*scale_val
+    else:
+        data = data*scale_val
 
     if filter_data:
         data = ndimage.uniform_filter(
@@ -81,7 +83,7 @@ def load_data(
     file_name="./data/data_braille_letters_all.pkl",
     upsample_fac=1.0,
     normalize_data=False,
-    norm_val=1,
+    scale_val=1,
     filter_data=False,
     startTrialAtNull=False
 ):
@@ -111,7 +113,7 @@ def load_data(
 
     # preprocess data
     timestamps_resampled, data_resampled = preprocess_data(
-        data=data, timestamps=timestamps, upsample_fac=upsample_fac, normalize_data=normalize_data, norm_val=norm_val, filter_data=filter_data, startTrialAtNull=startTrialAtNull)
+        data=data, timestamps=timestamps, upsample_fac=upsample_fac, normalize_data=normalize_data, scale_val=scale_val, filter_data=filter_data, startTrialAtNull=startTrialAtNull)
 
     # split data
     if np.min(data_resampled) < 0:
