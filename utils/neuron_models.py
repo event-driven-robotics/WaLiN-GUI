@@ -157,7 +157,7 @@ class IZ_neuron(nn.Module):
         dt=1/1000,
         a=0.02,
         b=0.2,
-        c=-0.065,
+        c=-65,
         d=8,
     ):
         super(IZ_neuron, self).__init__()
@@ -188,27 +188,41 @@ class IZ_neuron(nn.Module):
 
     def forward(self, x):
         if self.state is None:
-            self.state = self.NeuronState(V=torch.ones(x.shape[0], self.N, device=x.device) * -0.070,
+            self.state = self.NeuronState(V=torch.ones(x.shape[0], self.N, device=x.device) * self.c,
                                           u=torch.zeros(
-                                              x.shape[0], self.N, device=x.device) * -0.014,
+                                              x.shape[0], self.N, device=x.device) * self.b*self.c,
                                           spk=torch.zeros(x.shape[0], self.N, device=x.device))
 
         V = self.state.V
         u = self.state.u
 
-        dV = ((0.04 * V + 5) * V) + 140 - u + x
-        V = V + ((dV + u) * self.dt)
+        numerical_res = round(self.dt)
+        if self.dt>1:
+            output_spike = torch.zeros_like(self.state.spk)
+            for i in range(numerical_res):
+                V = V + (((0.04 * V + 5) * V) + 140 - u + x)
+                u = u + self.a * (self.b * V - u)
 
-        du = self.a * (self.b * V - u)
-        u = u + (self.dt * du)
+                # create spike when threshold reached
+                spk = activation(V - self.spike_value)
+                output_spike = output_spike + spk
 
-        # create spike when threshold reached
-        spk = activation(V - self.spike_value)
+                # (reset membrane voltage) or (only update)
+                V = (spk * self.c) + ((1 - spk) * V)
+                # (reset recovery) or (update currents)
+                u = (spk * (u + self.d)) + ((1 - spk) * u)
+        else:
+            V = V + self.dt*(((0.04 * V + 5) * V) + 140 - u + x)
+            u = u + self.dt*self.a * (self.b * V - u)
 
-        # (reset membrane voltage) or (only update)
-        V = (spk * self.c) + ((1 - spk) * V)
-        # (reset recovery) or (update currents)
-        u = (spk * (u + self.d)) + ((1 - spk) * u)
+            # create spike when threshold reached
+            spk = activation(V - self.spike_value)
+            output_spike = spk
+
+            # (reset membrane voltage) or (only update)
+            V = (spk * self.c) + ((1 - spk) * V)
+            # (reset recovery) or (update currents)
+            u = (spk * (u + self.d)) + ((1 - spk) * u)
 
         self.state = self.NeuronState(V=V, u=u, spk=spk)
 
