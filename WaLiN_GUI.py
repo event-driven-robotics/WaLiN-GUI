@@ -11,8 +11,8 @@ Fernando M. Quintana
 Vittorio Fra
 """
 
+
 import logging
-import re
 import sys
 from decimal import Decimal
 from random import random
@@ -475,15 +475,19 @@ class WaLiN_GUI_Window(QMainWindow):
             )
             self.sliders.append(slider)
             self.sliderLayout.addWidget(slider, id + 2, 1)
+            
             # create label for each slider
-            # TODO here we assume that the parameter name is always 'x_n' or does not contain '_' at all
-            # TODO this is not ideal, but in most cases variables have only a single digit subscript
-            # Use regular expression to find the pattern 'x_n' and format it as 'x<sub>n</sub>'
-            formatted_string = re.sub(r'(\w)_(\w)', r'\1<sub>\2</sub>', param_key)
-            # Creating a QLabel
-            sliderLabel = QLabel()
-            # Setting HTML content with the formatted string
-            sliderLabel.setText(f'<html><head/><body><p>{formatted_string}</p></body></html>')
+            # # TODO here we assume that the parameter name is always 'x_n' or does not contain '_' at all
+            # # TODO this is not ideal, but in most cases variables have only a single digit subscript
+            # # Use regular expression to find the pattern 'x_n' and format it as 'x<sub>n</sub>'
+            # import re
+            # formatted_string = re.sub(r'(\w)_(\w)', r'\1<sub>\2</sub>', param_key)
+            # # Creating a QLabel
+            # sliderLabel = QLabel()
+            # # Setting HTML content with the formatted string
+            # sliderLabel.setText(f'<html><head/><body><p>{formatted_string}</p></body></html>')
+
+            sliderLabel = QLabel(param_key, self)  # write parameter name
             sliderLabel.setAlignment(Qt.AlignmentFlag.AlignLeft)
             self.sliderLayout.addWidget(sliderLabel, id + 2, 0)
             # link the value readout to each slider
