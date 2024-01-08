@@ -595,7 +595,7 @@ class WaLiN_GUI_Window(QMainWindow):
         idx = np.arange(0, input.shape[0], upsample_fac)
         time = idx*dt/upsample_fac
 
-        # plot the raw data
+        # plot the input data
         axes[axis_names[0]].clear()
         axes[axis_names[0]].set_prop_cycle("color", colors[::2][channels])
         axes[axis_names[0]].plot(time, input[idx, 0][:, channels])
@@ -605,7 +605,7 @@ class WaLiN_GUI_Window(QMainWindow):
             abs(np.max(input[:, 0, channels]))
         if ymin != ymax:
             axes[axis_names[0]].set_ylim(ymin, ymax)
-        axes[axis_names[0]].set_title("Raw data")
+        axes[axis_names[0]].set_title("Input")
         figures[0].draw()
 
         axes[axis_names[1]].clear()
